@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Forest Pomodoro</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --forest: #2d4a2d;
+    --moss:   #4a6741;
+    --sage:   #7a9e6e;
+    --mist:   #b8cba8;
+    --cream:  #f2ede4;
+    --bark:   #5c4033;
+    --sky:    #c8dde8;
+    --water:  #7aacbe;
+    --gold:   #c8a84b;
+    --dusk:   #e8d5b0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: 'Crimson Pro', Georgia, serif;
+    background: #1a2e1a;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── SCENE ── */
+  .scene {
+    position: fixed; inset: 0;
+    overflow: hidden;
+  }
+
+  /* Sky gradient — shifts per mode */
+  .sky {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, #b8d4e8 0%, #d4e8c8 55%, #a8c498 100%);
+    transition: background 3s ease;
+  }
+  .sky.break {
+    background: linear-gradient(180deg, #fde8c0 0%, #f0c878 40%, #e8b86a 70%, #c8a460 100%);
+  }
+  .sky.long {
+    background: linear-gradient(180deg, #d4c0e8 0%, #e8c8d8 45%, #f0d8a8 80%, #e0c890 100%);
+  }
+
+  /* Sun / Moon orb */
+  .orb {
+    position: absolute;
+    width: 70px; height: 70px; border-radius: 50%;
+    top: 12%; left: 72%;
+    background: radial-gradient(circle at 40% 38%, #fff8e0, #f5d060 60%, #e8b830);
+    box-shadow: 0 0 40px 20px rgba(248,220,80,0.35), 0 0 80px 40px rgba(248,200,60,0.15);
+    transition: all 3s ease;
+  }
+  .orb.break {
+    background: radial-gradient(circle at 40% 38%, #ffe8c0, #f0a050 60%, #e07830);
+    box-shadow: 0 0 60px 30px rgba(240,140,60,0.4), 0 0 100px 60px rgba(230,120,40,0.18);
+    top: 18%; left: 65%;
+    width: 88px; height: 88px;
+  }
+  .orb.long {
+    background: radial-gradient(circle at 40% 38%, #fff0f8, #e8d0f0 60%, #c8a8e0);
+    box-shadow: 0 0 40px 20px rgba(200,160,230,0.3), 0 0 80px 40px rgba(180,140,210,0.12);
+    top: 10%; left: 78%;
+    width: 55px; height: 55px;
+  }
+
+  /* Clouds */
+  .cloud {
+    position: absolute;
+    background: rgba(255,255,255,0.82);
+    border-radius: 50px;
+    filter: blur(2px);
+    animation: drift linear infinite;
+  }
+  .cloud::before, .cloud::after {
+    content: ''; position: absolute;
+    background: inherit; border-radius: 50%;
+  }
+  .c1 { width:120px; height:38px; top:8%;  left:-140px; animation-duration: 80s; animation-delay: 0s; opacity:0.85; }
+  .c1::before { width:60px; height:60px; top:-28px; left:20px; }
+  .c1::after  { width:45px; height:45px; top:-20px; left:55px; }
+  .c2 { width:80px;  height:26px; top:15%; left:-100px; animation-duration:110s; animation-delay:-30s; opacity:0.65; }
+  .c2::before { width:40px; height:40px; top:-18px; left:15px; }
+  .c2::after  { width:30px; height:30px; top:-12px; left:40px; }
+  .c3 { width:160px; height:44px; top:5%;  left:-180px; animation-duration: 95s; animation-delay:-60s; opacity:0.55; }
+  .c3::before { width:70px; height:70px; top:-32px; left:30px; }
+  .c3::after  { width:55px; height:55px; top:-24px; left:80px; }
+
+  @keyframes drift { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 200px)); } }
+
+  /* Mountains far */
+  .mountains-far {
+    position: absolute; bottom: 36%; width: 100%; height: 28%;
+  }
+  .mountains-far svg { width: 100%; height: 100%; }
+
+  /* Treeline mid */
+  .treeline-mid {
+    position: absolute; bottom: 26%; width: 100%; height: 22%;
+    overflow: hidden;
+  }
+
+  /* Water / lake */
+  .lake {
+    position: absolute;
+    bottom: 18%; left: 20%; width: 60%; height: 10%;
+    background: linear-gradient(180deg, var(--water) 0%, #5a8fa8 100%);
+    border-radius: 50%;
+    opacity: 0.7;
+    filter: blur(1px);
+    overflow: hidden;
+  }
+  .lake-shimmer {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px, transparent 18px,
+      rgba(255,255,255,0.18) 20px, rgba(255,255,255,0.18) 22px
+    );
+    animation: shimmer 4s linear infinite;
+  }
+  @keyframes shimmer { from { transform: translateX(-22px); } to { transform: translateX(0px); } }
+
+  /* Foreground grass */
+  .ground {
+    position: absolute; bottom: 0; width: 100%; height: 22%;
+    background: linear-gradient(180deg, #3a5e2e 0%, #2a4a20 50%, #1e3816 100%);
+  }
+  .ground-mid {
+    position: absolute; bottom: 16%; width: 100%; height: 12%;
+    background: linear-gradient(180deg, #4a7038 0%, #3a5e2e 100%);
+  }
+
+  /* Animated grass blades */
+  .grass-row {
+    position: absolute; bottom: 16%; width: 100%;
+    display: flex; align-items: flex-end;
+    gap: 0px; overflow: hidden; height: 60px;
+  }
+  .blade {
+    width: 3px; background: linear-gradient(180deg, #6a9a50, #3a6028);
+    border-radius: 2px 2px 0 0;
+    transform-origin: bottom center;
+    animation: sway ease-in-out infinite alternate;
+    flex-shrink: 0;
+  }
+  @keyframes sway {
+    from { transform: rotate(-6deg) scaleY(0.96); }
+    to   { transform: rotate(6deg)  scaleY(1.02); }
+  }
+
+  /* Fireflies */
+  .firefly {
+    position: absolute; width: 4px; height: 4px;
+    border-radius: 50%;
+    background: rgba(200,240,100,0.9);
+    box-shadow: 0 0 6px 3px rgba(180,230,80,0.6);
+    animation: fly ease-in-out infinite, flicker ease-in-out infinite alternate;
+  }
+  @keyframes fly {
+    0%   { transform: translate(0,0); }
+    25%  { transform: translate(30px,-20px); }
+    50%  { transform: translate(60px,10px); }
+    75%  { transform: translate(20px,30px); }
+    100% { transform: translate(0,0); }
+  }
+  @keyframes flicker { from { opacity:0.2; } to { opacity:1; } }
+
+  /* Birds */
+  .bird {
+    position: absolute;
+    animation: soar linear infinite;
+    font-size: 13px; opacity: 0.5; filter: contrast(0);
+  }
+  @keyframes soar {
+    from { transform: translateX(-60px) translateY(0); }
+    to   { transform: translateX(calc(100vw + 60px)) translateY(-30px); }
+  }
+
+  /* ── UI CARD ── */
+  .card {
+    position: relative; z-index: 10;
+    width: 340px;
+    background: rgba(242,237,228,0.82);
+    backdrop-filter: blur(14px) saturate(1.2);
+    border-radius: 24px;
+    padding: 28px 28px 24px;
+    box-shadow:
+      0 8px 40px rgba(20,40,20,0.35),
+      0 2px 8px rgba(20,40,20,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+    border: 1px solid rgba(255,255,255,0.45);
+    transition: background 2s ease;
+  }
+
+  /* Mode heading */
+  .mode-header { text-align: center; margin-bottom: 18px; }
+  .mode-name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 22px; font-weight: 600; letter-spacing: 0.06em;
+    color: var(--forest);
+    transition: color 0.5s;
+  }
+  .mode-hint {
+    font-size: 12px; color: #7a8e6a; letter-spacing: 0.14em;
+    font-style: italic; margin-top: 2px;
+  }
+
+  /* Ring */
+  .ring-wrap {
+    width: 200px; height: 200px;
+    margin: 0 auto 20px;
+    position: relative; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .ring-wrap svg {
+    position: absolute; top: 0; left: 0;
+  }
+  .time-display {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px; font-weight: 300;
+    letter-spacing: 0.04em;
+    color: var(--forest);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    position: relative; z-index: 2;
+    text-align: center;
+    transition: color 0.4s;
+  }
+  .time-status {
+    font-size: 10px; color: #8a9e7a; letter-spacing: 0.28em;
+    text-transform: uppercase; margin-top: 4px;
+    font-family: 'Crimson Pro', serif;
+    text-align: center;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex; justify-content: center;
+    align-items: center; gap: 16px;
+    margin-bottom: 18px;
+  }
+  .btn-nature {
+    border: none; cursor: pointer; font-family: inherit;
+    border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    transition: all 0.18s ease;
+  }
+  .btn-sm {
+    width: 42px; height: 42px; font-size: 16px;
+    background: rgba(74,103,65,0.12);
+    color: var(--moss);
+    border: 1px solid rgba(74,103,65,0.2);
+  }
+  .btn-sm:hover { background: rgba(74,103,65,0.22); transform: scale(1.06); }
+  .btn-sm:active { transform: scale(0.94); }
+  .btn-main {
+    width: 66px; height: 66px; font-size: 22px;
+    background: linear-gradient(145deg, #5a7a4a, #3a5a2e);
+    color: #e8f0e0;
+    box-shadow: 0 4px 16px rgba(40,70,30,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.18s ease;
+  }
+  .btn-main:hover { transform: scale(1.06); box-shadow: 0 6px 22px rgba(40,70,30,0.45); }
+  .btn-main:active { transform: scale(0.95); }
+
+  /* Session dots */
+  .session-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin-bottom: 18px;
+  }
+  .sess-label {
+    font-size: 10px; color: #8a9e7a; letter-spacing: 0.2em;
+    font-family: 'Crimson Pro', serif; margin-right: 4px;
+  }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: rgba(74,103,65,0.18);
+    border: 1px solid rgba(74,103,65,0.25);
+    transition: all 0.4s ease;
+  }
+  .dot.filled {
+    background: radial-gradient(circle at 35% 35%, #8aba6e, #4a7038);
+    border-color: #5a8a48;
+    box-shadow: 0 0 6px rgba(100,160,70,0.5);
+  }
+
+  /* Mode tabs */
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 16px;
+  }
+  .tab {
+    flex: 1; padding: 7px 4px; border-radius: 10px; border: none;
+    font-family: 'Crimson Pro', serif;
+    font-size: 11px; letter-spacing: 0.1em;
+    cursor: pointer; transition: all 0.22s ease;
+    background: rgba(74,103,65,0.1);
+    color: #7a9060;
+    border: 1px solid transparent;
+  }
+  .tab:hover { background: rgba(74,103,65,0.18); }
+  .tab.active {
+    background: linear-gradient(145deg, #5a7a4a, #3a5a2e);
+    color: #e0eed8; font-weight: 400;
+    box-shadow: 0 2px 8px rgba(40,70,30,0.3);
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  /* Music panel */
+  .music-panel {
+    border-top: 1px solid rgba(74,103,65,0.18);
+    padding-top: 14px;
+  }
+  .music-title {
+    font-size: 11px; color: #8a9e7a; letter-spacing: 0.18em;
+    text-transform: uppercase; font-family: 'Crimson Pro', serif;
+    text-align: center; margin-bottom: 10px;
+  }
+  .sound-btns {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  .sound-btn {
+    padding: 8px 4px; border-radius: 10px; border: none;
+    font-family: 'Crimson Pro', serif; font-size: 11px;
+    cursor: pointer; transition: all 0.2s ease;
+    background: rgba(74,103,65,0.1);
+    color: #5a7850;
+    border: 1px solid transparent;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    letter-spacing: 0.06em;
+  }
+  .sound-btn .icon { font-size: 16px; }
+  .sound-btn:hover { background: rgba(74,103,65,0.2); }
+  .sound-btn.active {
+    background: linear-gradient(145deg, rgba(90,120,74,0.3), rgba(58,90,46,0.25));
+    border-color: rgba(90,130,70,0.4);
+    color: #3a5a2e;
+    box-shadow: inset 0 1px 3px rgba(40,70,30,0.15);
+  }
+
+  .volume-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px;
+  }
+  .vol-label { font-size: 10px; color: #8a9e7a; letter-spacing: 0.12em; }
+  input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 3px;
+    background: rgba(74,103,65,0.25); border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    border-radius: 50%; background: #4a6741; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(40,70,30,0.4);
+  }
+
+  /* Leaf particles */
+  .leaf {
+    position: fixed; pointer-events: none; z-index: 5;
+    font-size: 14px; opacity: 0;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    0%   { opacity:0.8; transform: translate(0,0) rotate(0deg); }
+    100% { opacity:0; transform: translate(var(--dx), 100vh) rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Scene -->
+<div class="scene">
+  <div class="sky" id="sky"></div>
+  <div class="orb" id="orb"></div>
+
+  <!-- Clouds -->
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="cloud c3"></div>
+
+  <!-- Birds -->
+  <div class="bird" style="top:12%;animation-duration:45s;animation-delay:-10s">🐦</div>
+  <div class="bird" style="top:9%;animation-duration:62s;animation-delay:-28s;font-size:10px">🐦</div>
+
+  <!-- Far mountains -->
+  <div class="mountains-far">
+    <svg viewBox="0 0 1440 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="0,200 180,40 360,200" fill="#6a8e5a" opacity="0.6"/>
+      <polygon points="120,200 340,20 560,200" fill="#5a7e4a" opacity="0.7"/>
+      <polygon points="300,200 520,50 740,200" fill="#4a6e3a" opacity="0.8"/>
+      <polygon points="500,200 700,30 900,200" fill="#5a8050" opacity="0.65"/>
+      <polygon points="680,200 880,60 1080,200" fill="#4a7040" opacity="0.75"/>
+      <polygon points="860,200 1060,25 1260,200" fill="#3a6030" opacity="0.8"/>
+      <polygon points="1080,200 1260,55 1440,200" fill="#4a7040" opacity="0.7"/>
+      <polygon points="1200,200 1380,40 1440,80 1440,200" fill="#5a7e4a" opacity="0.6"/>
+    </svg>
+  </div>
+
+  <!-- Lake -->
+  <div class="lake"><div class="lake-shimmer"></div></div>
+
+  <!-- Mid ground -->
+  <div class="ground-mid"></div>
+
+  <!-- Treeline SVG -->
+  <div class="treeline-mid">
+    <svg viewBox="0 0 1440 160" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+      <g fill="#2a4820" opacity="0.9">
+        <!-- Pine trees -->
+        <polygon points="0,160 20,60 40,160"/>
+        <polygon points="30,160 55,40 80,160"/>
+        <polygon points="70,160 95,55 120,160"/>
+        <polygon points="100,160 130,30 160,160"/>
+        <polygon points="145,160 170,50 195,160"/>
+        <polygon points="180,160 210,35 240,160"/>
+        <polygon points="225,160 255,55 285,160"/>
+        <polygon points="270,160 300,25 330,160"/>
+        <polygon points="315,160 345,45 375,160"/>
+        <polygon points="360,160 390,38 420,160"/>
+        <polygon points="405,160 435,55 465,160"/>
+        <polygon points="450,160 485,28 520,160"/>
+        <polygon points="505,160 535,50 565,160"/>
+        <polygon points="550,160 580,35 610,160"/>
+        <polygon points="595,160 625,52 655,160"/>
+        <polygon points="640,160 675,30 710,160"/>
+        <polygon points="695,160 725,48 755,160"/>
+        <polygon points="740,160 770,38 800,160"/>
+        <polygon points="785,160 820,22 855,160"/>
+        <polygon points="840,160 870,50 900,160"/>
+        <polygon points="885,160 915,40 945,160"/>
+        <polygon points="930,160 965,32 1000,160"/>
+        <polygon points="985,160 1015,52 1045,160"/>
+        <polygon points="1030,160 1060,36 1090,160"/>
+        <polygon points="1075,160 1110,28 1145,160"/>
+        <polygon points="1130,160 1160,50 1190,160"/>
+        <polygon points="1175,160 1205,40 1235,160"/>
+        <polygon points="1220,160 1255,30 1290,160"/>
+        <polygon points="1275,160 1305,48 1335,160"/>
+        <polygon points="1320,160 1355,35 1390,160"/>
+        <polygon points="1370,160 1405,50 1440,160"/>
+      </g>
+      <g fill="#3a5828" opacity="0.8">
+        <polygon points="15,160 38,75 61,160"/>
+        <polygon points="58,160 83,58 108,160"/>
+        <polygon points="105,160 133,42 161,160"/>
+        <polygon points="155,160 182,62 209,160"/>
+        <polygon points="205,160 232,45 259,160"/>
+        <polygon points="255,160 285,32 315,160"/>
+        <polygon points="308,160 338,58 368,160"/>
+        <polygon points="358,160 388,44 418,160"/>
+        <polygon points="412,160 444,36 476,160"/>
+        <polygon points="468,160 498,60 528,160"/>
+        <polygon points="520,160 550,42 580,160"/>
+        <polygon points="572,160 606,28 640,160"/>
+        <polygon points="628,160 658,54 688,160"/>
+        <polygon points="678,160 710,40 742,160"/>
+        <polygon points="730,160 763,34 796,160"/>
+        <polygon points="786,160 818,56 850,160"/>
+        <polygon points="838,160 870,44 902,160"/>
+        <polygon points="890,160 924,30 958,160"/>
+        <polygon points="948,160 978,58 1008,160"/>
+        <polygon points="1000,160 1030,42 1060,160"/>
+        <polygon points="1052,160 1086,36 1120,160"/>
+        <polygon points="1110,160 1140,62 1170,160"/>
+        <polygon points="1162,160 1192,44 1222,160"/>
+        <polygon points="1214,160 1248,32 1282,160"/>
+        <polygon points="1272,160 1302,56 1332,160"/>
+        <polygon points="1324,160 1356,42 1388,160"/>
+        <polygon points="1378,160 1409,60 1440,160"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Grass blades (generated by JS) -->
+  <div class="grass-row" id="grassRow"></div>
+
+  <!-- Ground -->
+  <div class="ground"></div>
+
+  <!-- Fireflies -->
+  <div class="firefly" style="left:15%;bottom:25%;animation-duration:8s,2.3s;animation-delay:0s,0.5s"></div>
+  <div class="firefly" style="left:35%;bottom:30%;animation-duration:11s,3.1s;animation-delay:-3s,1s"></div>
+  <div class="firefly" style="left:60%;bottom:22%;animation-duration:9s,1.8s;animation-delay:-5s,0.2s"></div>
+  <div class="firefly" style="left:78%;bottom:28%;animation-duration:13s,2.6s;animation-delay:-7s,1.5s"></div>
+  <div class="firefly" style="left:88%;bottom:20%;animation-duration:7s,2.0s;animation-delay:-1s,0.8s"></div>
+</div>
+
+<!-- Timer Card -->
+<div class="card" id="card">
+  <div class="mode-header">
+    <div class="mode-name" id="modeName">Focus</div>
+    <div class="mode-hint" id="modeHint">Find your flow in the forest</div>
+  </div>
+
+  <div class="ring-wrap">
+    <svg width="200" height="200">
+      <defs>
+        <filter id="softglow">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(74,103,65,0.12)" stroke-width="6"/>
+      <circle id="progressArc" cx="100" cy="100" r="88"
+        fill="none" stroke="#5a8a48" stroke-width="5"
+        stroke-linecap="round"
+        stroke-dasharray="552.9" stroke-dashoffset="552.9"
+        transform="rotate(-90 100 100)"
+        filter="url(#softglow)"
+        style="transition: stroke-dashoffset 0.95s ease, stroke 0.6s ease;"/>
+    </svg>
+    <div>
+      <div class="time-display" id="timeDisplay">25:00</div>
+      <div class="time-status" id="timeStatus">ready</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-nature btn-sm" id="resetBtn" title="Reset">↺</button>
+    <button class="btn-nature btn-main" id="playBtn" title="Start">▶</button>
+    <button class="btn-nature btn-sm" id="skipBtn" title="Skip">⏭</button>
+  </div>
+
+  <div class="session-row">
+    <span class="sess-label" id="sessLabel">SESSION 1</span>
+    <div class="dot" id="d0"></div>
+    <div class="dot" id="d1"></div>
+    <div class="dot" id="d2"></div>
+    <div class="dot" id="d3"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchMode('focus')">🌿 Focus</button>
+    <button class="tab" onclick="switchMode('short')">🌸 Short</button>
+    <button class="tab" onclick="switchMode('long')">🌅 Long</button>
+  </div>
+
+  <!-- Music -->
+  <div class="music-panel">
+    <div class="music-title">🎵 Ambient Sounds</div>
+    <div class="sound-btns">
+      <button class="sound-btn" id="snd-rain"    onclick="toggleSound('rain')">
+        <span class="icon">🌧️</span><span>Rain</span>
+      </button>
+      <button class="sound-btn" id="snd-forest"  onclick="toggleSound('forest')">
+        <span class="icon">🌲</span><span>Forest</span>
+      </button>
+      <button class="sound-btn" id="snd-stream"  onclick="toggleSound('stream')">
+        <span class="icon">💧</span><span>Stream</span>
+      </button>
+      <button class="sound-btn" id="snd-wind"    onclick="toggleSound('wind')">
+        <span class="icon">🍃</span><span>Wind</span>
+      </button>
+      <button class="sound-btn" id="snd-fire"    onclick="toggleSound('fire')">
+        <span class="icon">🔥</span><span>Fire</span>
+      </button>
+      <button class="sound-btn" id="snd-waves"   onclick="toggleSound('waves')">
+        <span class="icon">🌊</span><span>Waves</span>
+      </button>
+    </div>
+    <div class="volume-row">
+      <span class="vol-label">🔈</span>
+      <input type="range" id="volSlider" min="0" max="1" step="0.01" value="0.5" oninput="setVolume(this.value)"/>
+      <span class="vol-label">🔊</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── MODES ────────────────────────────────────────────────────────────────
+const MODES = {
+  focus: { name:"Focus",       hint:"Find your flow in the forest", dur:25*60, stroke:"#5a8a48", sky:"day"  },
+  short: { name:"Short Break", hint:"Breathe in the golden hour",   dur: 5*60, stroke:"#c8783a", sky:"dusk" },
+  long:  { name:"Long Break",  hint:"Rest beneath the moonlit sky", dur:15*60, stroke:"#8a7ab8", sky:"eve"  },
+};
+const TOTAL = 4, CIRC = 2*Math.PI*88;
+let mode="focus", timeLeft=MODES.focus.dur, running=false, done=0, session=1, ticker=null;
+
+// ── GRASS BLADES ─────────────────────────────────────────────────────────
+const gr = document.getElementById("grassRow");
+for (let i=0; i<220; i++) {
+  const b = document.createElement("div"); b.className="blade";
+  const h = 20+Math.random()*40;
+  b.style.cssText=`height:${h}px;margin-left:${Math.random()*4}px;animation-duration:${1.8+Math.random()*2}s;animation-delay:${-Math.random()*3}s;opacity:${0.6+Math.random()*0.4};background:linear-gradient(180deg,${Math.random()>0.5?"#78b058":"#5a9040"},#3a6028)`;
+  gr.appendChild(b);
+}
+
+// ── AUDIO ENGINE ─────────────────────────────────────────────────────────
+let actx = null;
+function getCtx() { if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+
+// Tone for UI
+function uiTone(f, d=0.1, delay=0) {
+  try {
+    const ctx=getCtx(), o=ctx.createOscillator(), g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination); o.type="sine"; o.frequency.value=f;
+    g.gain.setValueAtTime(0,ctx.currentTime+delay);
+    g.gain.linearRampToValueAtTime(0.1,ctx.currentTime+delay+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+d);
+    o.start(ctx.currentTime+delay); o.stop(ctx.currentTime+delay+d+0.05);
+  } catch(e){}
+}
+function playFinish() { [[528,0],[660,.22],[792,.44],[1056,.7]].forEach(([f,d])=>uiTone(f,0.3,d)); }
+
+// Ambient sound nodes
+const soundNodes = {};
+let masterVol = 0.5;
+
+function makeNoise(type) {
+  const ctx = getCtx();
+  const buf = ctx.createBuffer(1, ctx.sampleRate*3, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  if (type==="white") { for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
+  else if (type==="brown") {
+    let last=0;
+    for(let i=0;i<d.length;i++) { const w=Math.random()*2-1; d[i]=last=(last+0.02*w)/1.02; }
+  }
+  const src = ctx.createBufferSource(); src.buffer=buf; src.loop=true;
+  return src;
+}
+
+function buildSound(name) {
+  const ctx = getCtx();
+  const gain = ctx.createGain(); gain.gain.value=0; gain.connect(ctx.destination);
+  let nodes=[];
+
+  if (name==="rain") {
+    const src=makeNoise("white"); src.connect(gain); src.start();
+    const f=ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=3000; f.Q.value=0.5;
+    src.disconnect(); src.connect(f); f.connect(gain); nodes=[src,f];
+    gain.gain.value=0;
+  } else if (name==="forest") {
+    // chirps = layered sine bursts via oscillators
+    const osc=ctx.createOscillator(); osc.type="sine"; osc.frequency.value=800;
+    osc.connect(gain); osc.start();
+    const osc2=ctx.createOscillator(); osc2.type="sine"; osc2.frequency.value=1200;
+    osc2.connect(gain); osc2.start();
+    const src=makeNoise("white"); const f=ctx.createBiquadFilter(); f.type="highpass"; f.frequency.value=4000;
+    src.connect(f); f.connect(gain); src.start();
+    nodes=[osc,osc2,src,f];
+  } else if (name==="stream") {
+    const src=makeNoise("brown"); const f=ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=600; f.Q.value=0.8;
+    src.connect(f); f.connect(gain); src.start();
+    nodes=[src,f];
+  } else if (name==="wind") {
+    const src=makeNoise("brown"); const f=ctx.createBiquadFilter(); f.type="lowpass"; f.frequency.value=400;
+    src.connect(f); f.connect(gain); src.start();
+    nodes=[src,f];
+  } else if (name==="fire") {
+    const src=makeNoise("brown"); const f=ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=180; f.Q.value=1.2;
+    src.connect(f); f.connect(gain); src.start();
+    nodes=[src,f];
+  } else if (name==="waves") {
+    const src=makeNoise("brown"); const f=ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=300; f.Q.value=0.6;
+    src.connect(f);
+    // LFO for wave rhythm
+    const lfo=ctx.createOscillator(); lfo.frequency.value=0.18; lfo.type="sine";
+    const lfoGain=ctx.createGain(); lfoGain.gain.value=0.4;
+    lfo.connect(lfoGain); lfoGain.connect(gain.gain); lfo.start();
+    f.connect(gain); src.start();
+    nodes=[src,f,lfo,lfoGain];
+  }
+
+  return { gain, nodes, active: false };
+}
+
+function toggleSound(name) {
+  const ctx = getCtx();
+  const btn = document.getElementById("snd-"+name);
+
+  if (!soundNodes[name]) soundNodes[name] = buildSound(name);
+  const s = soundNodes[name];
+  s.active = !s.active;
+
+  const targetVol = s.active ? masterVol * 0.55 : 0;
+  s.gain.gain.cancelScheduledValues(ctx.currentTime);
+  s.gain.gain.setValueAtTime(s.gain.gain.value, ctx.currentTime);
+  s.gain.gain.linearRampToValueAtTime(targetVol, ctx.currentTime + 0.8);
+
+  btn.classList.toggle("active", s.active);
+}
+
+function setVolume(v) {
+  masterVol = parseFloat(v);
+  Object.values(soundNodes).forEach(s => {
+    if (s.active) {
+      s.gain.gain.cancelScheduledValues(getCtx().currentTime);
+      s.gain.gain.setValueAtTime(s.gain.gain.value, getCtx().currentTime);
+      s.gain.gain.linearRampToValueAtTime(masterVol*0.55, getCtx().currentTime+0.3);
+    }
+  });
+}
+
+// ── TIMER ────────────────────────────────────────────────────────────────
+function fmt(s) { return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`; }
+
+function render() {
+  const cfg = MODES[mode];
+  const progress = (cfg.dur - timeLeft)/cfg.dur;
+  document.getElementById("timeDisplay").textContent = fmt(timeLeft);
+  document.getElementById("timeStatus").textContent = running?"● flowing":timeLeft===cfg.dur?"ready":"paused";
+  document.getElementById("progressArc").style.strokeDashoffset = CIRC*(1-progress);
+  document.getElementById("progressArc").setAttribute("stroke", cfg.stroke);
+  document.getElementById("modeName").textContent = cfg.name;
+  document.getElementById("modeHint").textContent = cfg.hint;
+  document.getElementById("playBtn").textContent = running?"⏸":"▶";
+  document.getElementById("sessLabel").textContent = `SESSION ${session}`;
+
+  // Sky
+  const sky=document.getElementById("sky"), orb=document.getElementById("orb");
+  sky.className="sky"+(cfg.sky==="dusk"?" break":cfg.sky==="eve"?" long":"");
+  orb.className="orb"+(cfg.sky==="dusk"?" break":cfg.sky==="eve"?" long":"");
+
+  // Dots
+  const dc=done%TOTAL;
+  for(let i=0;i<TOTAL;i++){
+    const d=document.getElementById(`d${i}`);
+    d.classList.toggle("filled",i<dc);
+  }
+
+  // Tabs
+  document.querySelectorAll(".tab").forEach((t,i)=>{
+    const m=["focus","short","long"][i];
+    t.classList.toggle("active",m===mode);
+  });
+}
+
+function finish() {
+  running=false; clearInterval(ticker); playFinish();
+  spawnLeaves();
+  if(mode==="focus"){done++;const nm=done%TOTAL===0?"long":"short";mode=nm;timeLeft=MODES[nm].dur;}
+  else{mode="focus";timeLeft=MODES.focus.dur;session++;}
+  render();
+}
+
+function toggle() {
+  uiTone(running?440:528,0.08); running=!running;
+  if(running){ticker=setInterval(()=>{timeLeft--;if(timeLeft<=0){timeLeft=0;clearInterval(ticker);finish();}render();},1000);}
+  else clearInterval(ticker);
+  render();
+}
+
+function resetTimer() { running=false; clearInterval(ticker); timeLeft=MODES[mode].dur; uiTone(330,0.1); render(); }
+function switchMode(m) { running=false; clearInterval(ticker); mode=m; timeLeft=MODES[m].dur; render(); }
+
+document.getElementById("playBtn").onclick  = toggle;
+document.getElementById("resetBtn").onclick = resetTimer;
+document.getElementById("skipBtn").onclick  = ()=>{uiTone(520,0.06);finish();};
+
+// ── LEAF BURST ────────────────────────────────────────────────────────────
+function spawnLeaves() {
+  const emojis=["🍃","🍂","🌿","🍁"];
+  for(let i=0;i<14;i++){
+    const el=document.createElement("div"); el.className="leaf";
+    el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    el.style.cssText=`left:${25+Math.random()*50}%;top:${20+Math.random()*30}%;--dx:${(Math.random()-0.5)*200}px;animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*0.8}s;font-size:${10+Math.random()*12}px`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),4000);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
