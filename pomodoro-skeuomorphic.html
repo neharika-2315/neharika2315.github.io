@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Open this file in any modern browser. -->
+  <title>Pomodoro Skeuomorphic</title>
+  <style>
+    :root {
+      --hue: #c0392b;
+      --ring: #e74c3c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(145deg, #c8c0b8 0%, #b0a89e 40%, #c4bcb4 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Georgia", "Palatino Linotype", serif;
+      color: #f0ece6;
+    }
+
+    .device {
+      width: 380px;
+      background: linear-gradient(160deg, #e8e2da 0%, #ddd6cc 35%, #d4cdc4 70%, #ccc4ba 100%);
+      border-radius: 32px;
+      padding: 36px 32px 32px;
+      box-shadow:
+        0 2px 0 #f5f0eb inset,
+        0 -1px 0 #b8b0a6 inset,
+        1px 0 0 #ede8e2 inset,
+        -1px 0 0 #c0b8ae inset,
+        0 20px 60px rgba(0, 0, 0, 0.35),
+        0 6px 20px rgba(0, 0, 0, 0.2),
+        0 1px 3px rgba(0, 0, 0, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .texture {
+      position: absolute;
+      inset: 0;
+      border-radius: 32px;
+      pointer-events: none;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='1' height='1' fill='rgba(255,255,255,0.08)'/%3E%3C/svg%3E");
+      opacity: 0.6;
+    }
+
+    .mode-head {
+      text-align: center;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .mode-label {
+      font-size: 13px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--hue);
+      font-family: "Courier New", monospace;
+      font-weight: 700;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+      transition: color 0.4s;
+    }
+
+    .mode-sub {
+      font-size: 11px;
+      color: #8a8278;
+      letter-spacing: 0.1em;
+      margin-top: 2px;
+      font-style: italic;
+    }
+
+    .clock-face {
+      margin: 0 auto 28px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #c8c2b8 0%, #d8d2c8 50%, #ccc6bc 100%);
+      box-shadow:
+        inset 0 4px 12px rgba(0, 0, 0, 0.28),
+        inset 0 1px 4px rgba(0, 0, 0, 0.18),
+        inset 0 -2px 6px rgba(255, 255, 255, 0.25),
+        0 2px 4px rgba(255, 255, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .clock-inner {
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #1a1814 0%, #252320 40%, #1e1c1a 100%);
+      box-shadow:
+        inset 0 2px 8px rgba(255, 255, 255, 0.08),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.6),
+        0 3px 8px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .ring-svg {
+      width: 260px;
+      height: 260px;
+      position: absolute;
+      top: -10px;
+      left: -10px;
+    }
+
+    .progress-ring {
+      transition: stroke-dashoffset 0.95s ease, stroke 0.4s ease;
+    }
+
+    .time-wrap {
+      text-align: center;
+      z-index: 2;
+      position: relative;
+    }
+
+    .time-display {
+      font-size: 58px;
+      font-weight: 700;
+      line-height: 1;
+      font-family: "Courier New", Courier, monospace;
+      font-variant-numeric: tabular-nums;
+      color: #f0ece6;
+      text-shadow: 0 0 20px color-mix(in srgb, var(--ring) 35%, transparent), 0 2px 4px rgba(0, 0, 0, 0.8);
+      letter-spacing: 0.02em;
+      transition: color 0.2s, text-shadow 0.2s;
+    }
+
+    .time-display.flash {
+      color: var(--ring);
+    }
+
+    .status {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.28);
+      letter-spacing: 0.3em;
+      margin-top: 6px;
+      font-family: "Courier New", monospace;
+      text-transform: uppercase;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .phys-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      color: #5a5550;
+      background: linear-gradient(145deg, #ddd8d0, #c8c2b8);
+      box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+      transform: translateY(0) scale(1);
+      transition: all 0.12s ease;
+      text-shadow: none;
+    }
+
+    .phys-btn.small {
+      width: 48px;
+      height: 48px;
+    }
+
+    .phys-btn.large {
+      width: 72px;
+      height: 72px;
+    }
+
+    .phys-btn.accent {
+      color: #fff;
+      background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--hue) 94%, #ffffff 6%), color-mix(in srgb, var(--hue) 82%, #000000 18%));
+      box-shadow:
+        0 4px 12px color-mix(in srgb, var(--hue) 40%, transparent),
+        0 2px 4px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .phys-btn.is-pressed {
+      transform: translateY(2px) scale(0.97);
+      box-shadow:
+        inset 0 3px 8px rgba(0, 0, 0, 0.35),
+        inset 0 1px 3px rgba(0, 0, 0, 0.2),
+        0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .icon-reset {
+      font-size: 18px;
+    }
+
+    .icon-play {
+      font-size: 26px;
+      margin-left: 3px;
+    }
+
+    .icon-play.pause {
+      margin-left: 0;
+    }
+
+    .icon-skip {
+      font-size: 16px;
+    }
+
+    .session-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .session-text {
+      font-size: 10px;
+      color: #8a8278;
+      letter-spacing: 0.2em;
+      font-family: "Courier New", monospace;
+      margin-right: 4px;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      transition: all 0.4s ease;
+      background: linear-gradient(145deg, #ccc6bc, #b8b2a8);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25), 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .dot.done {
+      background: radial-gradient(circle at 35% 35%, var(--ring), var(--hue));
+      box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 0 6px color-mix(in srgb, var(--ring) 40%, transparent);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 8px 4px;
+      border-radius: 10px;
+      border: none;
+      font-family: "Courier New", monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+      background: linear-gradient(145deg, #d8d2c8, #c8c2b8);
+      color: #7a7470;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(255, 255, 255, 0.6);
+      font-weight: 400;
+      transform: translateY(0);
+    }
+
+    .tab.active {
+      background: linear-gradient(145deg, color-mix(in srgb, var(--tab-hue) 88%, #ffffff 12%), var(--tab-hue));
+      color: #fff;
+      box-shadow:
+        0 2px 8px color-mix(in srgb, var(--tab-hue) 40%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+      font-weight: 700;
+    }
+
+    .tab.is-pressed {
+      transform: translateY(1px);
+    }
+  </style>
+</head>
+<body>
+  <main class="device" id="appRoot">
+    <div class="texture"></div>
+
+    <section class="mode-head">
+      <div id="modeLabel" class="mode-label">Focus</div>
+      <div id="modeSub" class="mode-sub">Deep Work</div>
+    </section>
+
+    <section class="clock-face">
+      <div class="clock-inner">
+        <svg class="ring-svg" viewBox="0 0 260 260" aria-hidden="true">
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="blur"></feGaussianBlur>
+              <feMerge>
+                <feMergeNode in="blur"></feMergeNode>
+                <feMergeNode in="SourceGraphic"></feMergeNode>
+              </feMerge>
+            </filter>
+          </defs>
+
+          <circle cx="130" cy="130" r="108" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
+          <circle
+            id="progressRing"
+            class="progress-ring"
+            cx="130"
+            cy="130"
+            r="108"
+            fill="none"
+            stroke="var(--ring)"
+            stroke-width="7"
+            stroke-linecap="round"
+            transform="rotate(-90 130 130)"
+            filter="url(#glow)"
+          ></circle>
+          <g id="ticks"></g>
+        </svg>
+
+        <div class="time-wrap">
+          <div id="timeDisplay" class="time-display">25:00</div>
+          <div id="statusText" class="status">ready</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <button id="btnReset" class="phys-btn small" type="button" aria-label="Reset timer">
+        <span class="icon-reset">↺</span>
+      </button>
+      <button id="btnPlay" class="phys-btn large accent" type="button" aria-label="Play or pause timer">
+        <span id="playIcon" class="icon-play">▶</span>
+      </button>
+      <button id="btnSkip" class="phys-btn small" type="button" aria-label="Skip timer">
+        <span class="icon-skip">⏭</span>
+      </button>
+    </section>
+
+    <section class="session-row">
+      <span id="sessionText" class="session-text">SESSION 1</span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </section>
+
+    <section class="tabs">
+      <button class="tab" data-mode="focus" type="button">Focus</button>
+      <button class="tab" data-mode="short" type="button">Short</button>
+      <button class="tab" data-mode="long" type="button">Long</button>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const MODES = {
+        focus: { label: "Focus", sub: "Deep Work", duration: 25 * 60, hue: "#c0392b", ring: "#e74c3c" },
+        short: { label: "Short Break", sub: "Rest a moment", duration: 5 * 60, hue: "#27ae60", ring: "#2ecc71" },
+        long: { label: "Long Break", sub: "Step away", duration: 15 * 60, hue: "#2471a3", ring: "#3498db" }
+      };
+
+      const TOTAL = 4;
+      const R = 108;
+      const CIRC = 2 * Math.PI * R;
+
+      const state = {
+        mode: "focus",
+        timeLeft: MODES.focus.duration,
+        running: false,
+        done: 0,
+        session: 1,
+        pressed: null,
+        justDone: false
+      };
+
+      let intervalId = null;
+      let doneTimeoutId = null;
+      let audioCtx = null;
+
+      const appRoot = document.getElementById("appRoot");
+      const modeLabel = document.getElementById("modeLabel");
+      const modeSub = document.getElementById("modeSub");
+      const timeDisplay = document.getElementById("timeDisplay");
+      const statusText = document.getElementById("statusText");
+      const sessionText = document.getElementById("sessionText");
+      const progressRing = document.getElementById("progressRing");
+      const ticks = document.getElementById("ticks");
+      const btnReset = document.getElementById("btnReset");
+      const btnPlay = document.getElementById("btnPlay");
+      const btnSkip = document.getElementById("btnSkip");
+      const playIcon = document.getElementById("playIcon");
+      const dots = Array.from(document.querySelectorAll(".dot"));
+      const tabs = Array.from(document.querySelectorAll(".tab"));
+
+      function fmt(seconds) {
+        const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+        const s = String(seconds % 60).padStart(2, "0");
+        return m + ":" + s;
+      }
+
+      function tone(freq, duration, delay) {
+        const d = typeof duration === "number" ? duration : 0.15;
+        const wait = typeof delay === "number" ? delay : 0;
+
+        try {
+          if (!audioCtx) {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) {
+              return;
+            }
+            audioCtx = new Ctx();
+          }
+
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = "sine";
+          osc.frequency.value = freq;
+
+          gain.gain.setValueAtTime(0, audioCtx.currentTime + wait);
+          gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + wait + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + wait + d);
+
+          osc.start(audioCtx.currentTime + wait);
+          osc.stop(audioCtx.currentTime + wait + d + 0.05);
+        } catch (err) {
+          void err;
+        }
+      }
+
+      function stopTimer() {
+        if (intervalId !== null) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        state.running = false;
+      }
+
+      function startTimer() {
+        if (intervalId !== null) {
+          return;
+        }
+
+        state.running = true;
+        intervalId = window.setInterval(function () {
+          if (state.timeLeft <= 1) {
+            state.timeLeft = 0;
+            stopTimer();
+            finish();
+            return;
+          }
+
+          state.timeLeft -= 1;
+          render();
+        }, 1000);
+      }
+
+      function finish() {
+        stopTimer();
+        state.justDone = true;
+
+        if (doneTimeoutId !== null) {
+          clearTimeout(doneTimeoutId);
+        }
+        doneTimeoutId = window.setTimeout(function () {
+          state.justDone = false;
+          render();
+        }, 1000);
+
+        [[880, 0], [1100, 0.2], [1320, 0.4], [1760, 0.65]].forEach(function (pair) {
+          tone(pair[0], 0.28, pair[1]);
+        });
+
+        if (state.mode === "focus") {
+          const n = state.done + 1;
+          state.done = n;
+          const nextMode = n % TOTAL === 0 ? "long" : "short";
+          state.mode = nextMode;
+          state.timeLeft = MODES[nextMode].duration;
+        } else {
+          state.mode = "focus";
+          state.timeLeft = MODES.focus.duration;
+          state.session += 1;
+        }
+
+        render();
+      }
+
+      function switchMode(mode) {
+        stopTimer();
+        state.mode = mode;
+        state.timeLeft = MODES[mode].duration;
+        render();
+      }
+
+      function toggle() {
+        tone(state.running ? 440 : 660, 0.08, 0);
+
+        if (state.running) {
+          stopTimer();
+          render();
+          return;
+        }
+
+        startTimer();
+        render();
+      }
+
+      function reset() {
+        stopTimer();
+        state.timeLeft = MODES[state.mode].duration;
+        tone(330, 0.1, 0);
+        render();
+      }
+
+      function skip() {
+        finish();
+      }
+
+      function buttonPress(id, callback) {
+        state.pressed = id;
+        tone(520, 0.05, 0);
+        render();
+        window.setTimeout(function () {
+          state.pressed = null;
+          render();
+        }, 180);
+
+        callback();
+      }
+
+      function drawTicks() {
+        for (let i = 0; i < 60; i += 1) {
+          const angle = (i / 60) * 2 * Math.PI - Math.PI / 2;
+          const isMajor = i % 5 === 0;
+          const r1 = R + 6;
+          const r2 = R + (isMajor ? 13 : 9);
+
+          const x1 = 130 + r1 * Math.cos(angle);
+          const y1 = 130 + r1 * Math.sin(angle);
+          const x2 = 130 + r2 * Math.cos(angle);
+          const y2 = 130 + r2 * Math.sin(angle);
+
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", x1.toString());
+          line.setAttribute("y1", y1.toString());
+          line.setAttribute("x2", x2.toString());
+          line.setAttribute("y2", y2.toString());
+          line.setAttribute("stroke", isMajor ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.12)");
+          line.setAttribute("stroke-width", isMajor ? "2" : "1");
+          ticks.appendChild(line);
+        }
+      }
+
+      function render() {
+        const cfg = MODES[state.mode];
+        const progress = (cfg.duration - state.timeLeft) / cfg.duration;
+        const dashOffset = CIRC * (1 - progress);
+        const dotsCompleted = state.done % TOTAL;
+
+        appRoot.style.setProperty("--hue", cfg.hue);
+        appRoot.style.setProperty("--ring", cfg.ring);
+
+        modeLabel.textContent = cfg.label;
+        modeSub.textContent = cfg.sub;
+        timeDisplay.textContent = fmt(state.timeLeft);
+        sessionText.textContent = "SESSION " + state.session;
+
+        progressRing.setAttribute("stroke-dasharray", String(CIRC));
+        progressRing.setAttribute("stroke-dashoffset", String(dashOffset));
+        progressRing.setAttribute("stroke", state.justDone ? "#fff" : cfg.ring);
+
+        if (state.justDone) {
+          timeDisplay.classList.add("flash");
+        } else {
+          timeDisplay.classList.remove("flash");
+        }
+
+        if (state.running) {
+          statusText.textContent = "● running";
+        } else if (state.timeLeft === cfg.duration) {
+          statusText.textContent = "ready";
+        } else {
+          statusText.textContent = "paused";
+        }
+
+        playIcon.textContent = state.running ? "⏸" : "▶";
+        playIcon.classList.toggle("pause", state.running);
+
+        dots.forEach(function (dot, idx) {
+          dot.classList.toggle("done", idx < dotsCompleted);
+        });
+
+        btnReset.classList.toggle("is-pressed", state.pressed === "reset");
+        btnPlay.classList.toggle("is-pressed", state.pressed === "play");
+        btnSkip.classList.toggle("is-pressed", state.pressed === "skip");
+
+        tabs.forEach(function (tab) {
+          const tabMode = tab.getAttribute("data-mode");
+          const tabCfg = MODES[tabMode];
+          tab.style.setProperty("--tab-hue", tabCfg.hue);
+          tab.classList.toggle("active", tabMode === state.mode);
+          tab.classList.toggle("is-pressed", state.pressed === tabMode);
+        });
+      }
+
+      btnReset.addEventListener("click", function () {
+        buttonPress("reset", reset);
+      });
+
+      btnPlay.addEventListener("click", function () {
+        buttonPress("play", toggle);
+      });
+
+      btnSkip.addEventListener("click", function () {
+        buttonPress("skip", skip);
+      });
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener("click", function () {
+          const mode = tab.getAttribute("data-mode");
+          buttonPress(mode, function () {
+            switchMode(mode);
+          });
+        });
+      });
+
+      drawTicks();
+      render();
+    })();
+  </script>
+</body>
+</html>
